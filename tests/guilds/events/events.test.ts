@@ -34,6 +34,8 @@ Deno.test({
         assertEquals(event.scheduledEndTime, options.scheduledEndTime);
         assertEquals(event.privacyLevel, options.privacyLevel);
         assertEquals(event.entityType, options.entityType);
+
+        await bot.helpers.deleteScheduledEvent(CACHED_COMMUNITY_GUILD_ID, event.id);
       },
     );
 
