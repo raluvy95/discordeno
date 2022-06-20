@@ -1,4 +1,4 @@
-import { createGatewayManager, GatewayBot, GatewayManager } from "./deps.ts";
+import { createGatewayManager, DiscordReady, GatewayBot, GatewayManager } from "./deps.ts";
 
 export function enableResharderPlugin<G extends GatewayManager>(
   manager: GatewayManager,
@@ -47,12 +47,28 @@ export function enableResharderPlugin<G extends GatewayManager>(
 
       // Create a temporary gateway manager for easier handling.
       const tmpManager = createGatewayManager({
+        firstShardId: gateway.firstShardId,
         gatewayBot: payload,
-        gatewayConfig: gateway.manager.gatewayConfig,
-        handleDiscordPayload: () => {},
-        createShardOptions: gateway.manager.createShardOptions,
+        lastShardId: gateway.lastShardId === gateway.manager.totalShards - 1 ? payload.shards - 1 : gateway.lastShardId,
         
+
+        // old
+
+        gatewayConfig: gateway.manager.gatewayConfig,
+        handleDiscordPayload: async (_, data, shardId) => {
+          if (data.t === "READY") {
+            const payload = data.d as DiscordReady;
+            await tmpManager.resharder.markNewGuildShardId(shardId, payload.guilds.map(g => BigInt(g.id)));
+          }
+        },
+        createShardOptions: gateway.manager.createShardOptions,
       });
+
+      for (const [key, value] of Object.entries(oldGateway)) {
+        // USE ANY CUSTOMIZED OPTIONS FROM OLD GATEWAY
+        // @ts-ignore TODO: fix this dynamical assignment
+        gateway[key] = oldGateway[key as keyof typeof oldGateway];
+      }
 
       // Begin resharding
 
